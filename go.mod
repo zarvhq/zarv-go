@@ -1,6 +1,6 @@
 module github.com/zarvhq/zarv-go
 
-go 1.25.3
+go 1.24.0
 
 require (
 	cloud.google.com/go/documentai v1.40.0

@@ -12,167 +12,78 @@ Biblioteca de módulos compartilhados em Go para projetos Zarv.
 go get github.com/zarvhq/zarv-go
 ```
 
-## 📚 Pacotes Disponíveis
+## 📚 Documentação
 
-### Fiber Middleware
+### 🔐 [Fiber Middleware](docs/fiber.md)
 
-Middlewares para aplicações Fiber com autenticação e autorização Zarv. Veja [documentação completa](pkg/fiber/README.md).
-
-#### Instalação
+Middlewares para aplicações Fiber com autenticação e autorização Zarv.
 
 ```go
 import "github.com/zarvhq/zarv-go/pkg/fiber/v2/middleware"
 ```
 
-#### Uso
+**Funcionalidades:**
+- Middleware de autenticação via headers HTTP
+- Validação de níveis de acesso (viewer, user, supervisor, admin)
+- Métodos auxiliares de autorização
+- Suporte a requisições internas
 
-```go
-package main
+**[📖 Ver documentação completa →](docs/fiber.md)**
 
-import (
-    "github.com/gofiber/fiber/v2"
-    "github.com/zarvhq/zarv-go/pkg/fiber/v2/middleware"
-)
+---
 
-func main() {
-    app := fiber.New()
+### ☁️ [Google Cloud Platform (GCP)](docs/gcp.md)
 
-    // Adicionar middleware de autenticação
-    app.Use(middleware.Authenticate)
+Clientes para serviços do Google Cloud Platform.
 
-    app.Get("/api/resource", func(c *fiber.Ctx) error {
-        // Obter perfil de autenticação
-        profile := middleware.GetAuthProfile(c)
-        
-        // Verificar permissões
-        if profile.IsViewer() {
-            return c.Status(403).JSON(fiber.Map{
-                "error": "Permission denied",
-            })
-        }
-
-        return c.JSON(fiber.Map{
-            "workspaceId": profile.WorkspaceID,
-            "userId": profile.UserID,
-        })
-    })
-
-    app.Listen(":3000")
-}
-```
-
-### GCP (Google Cloud Platform)
-
-Clientes para serviços do Google Cloud Platform. Veja [documentação completa](pkg/gcp/README.md).
+**Pacotes disponíveis:**
 
 #### GCS (Google Cloud Storage)
-
 ```go
 import "github.com/zarvhq/zarv-go/pkg/gcp/gcs"
 ```
+Upload/download de objetos e geração de signed URLs.
 
 #### Document AI
-
 ```go
 import "github.com/zarvhq/zarv-go/pkg/gcp/documentai"
 ```
+Processamento de documentos com IA.
 
 #### Pub/Sub
-
-Cliente para operações com Google Cloud Pub/Sub (tópicos e filas). Veja [documentação completa](pkg/gcp/pubsub/README.md).
-
 ```go
 import "github.com/zarvhq/zarv-go/pkg/gcp/pubsub"
 ```
+Publicação e consumo de mensagens em tópicos e subscriptions.
 
-**Exemplo Rápido:**
+**Funcionalidades:**
+- Suporte a Workload Identity
+- Graceful shutdown
+- Processamento concorrente
+- Serialização automática JSON
+- Panic recovery
 
-```go
-// Publisher
-client, _ := pubsub.NewClient(ctx, &pubsub.Cfg{ProjectID: "my-project"})
-publisher, _ := client.NewPublisher("topic-name")
-messageID, _ := publisher.Publish(ctx, map[string]string{"msg": "hello"})
+**[📖 Ver documentação completa →](docs/gcp.md)**
 
-// Subscriber
-type Handler struct{}
-func (h *Handler) HandleMessage(data []byte, attributes map[string]string) error {
-    return nil
-}
+---
 
-subscriber, _ := client.NewSubscriber("subscription-id", &Handler{})
-subscriber.Receive(10) // 10 workers concorrentes
-```
+### 🐰 [RabbitMQ](docs/rabbitmq.md)
 
-### RabbitMQ
-
-Cliente para operações com RabbitMQ. Veja [documentação completa](pkg/rabbitmq/README.md).
-
-#### Instalação
+Cliente para operações com RabbitMQ.
 
 ```go
 import "github.com/zarvhq/zarv-go/pkg/rabbitmq"
 ```
 
-#### Exemplo Rápido
+**Funcionalidades:**
+- Producer com reconnection automática
+- Consumer com graceful shutdown
+- Handlers personalizáveis
+- Processamento concorrente configurável
+- Serialização automática JSON
+- Thread-safe
 
-```go
-// Producer
-client, _ := rabbitmq.NewClient(ctx, "amqp://localhost:5672/")
-producer, _ := client.NewProducer()
-producer.Publish("queue-name", map[string]string{"msg": "hello"})
-
-// Consumer
-type Handler struct{}
-func (h *Handler) HandleMessage(data []byte) error { return nil }
-
-consumer, _ := client.NewConsumer("consumer-name", "queue-name", &Handler{})
-consumer.Consume(5) // 5 workers concorrentes
-```
-            })
-        }
-
-        return c.JSON(fiber.Map{
-            "workspaceId": profile.WorkspaceID,
-            "userId": profile.UserID,
-        })
-    })
-
-    app.Listen(":3000")
-}
-```
-
-#### Headers Esperados
-
-O middleware `Authenticate` valida os seguintes headers:
-
-- `X-Issuer`: Identificador do emissor (ex: "ultron-app", "vision-app")
-- `X-Workspace-Id`: ID do workspace Zarv
-- `X-User-Id`: ID do usuário Zarv
-- `X-Zarv-Role`: Role do usuário
-- `X-Access-Level`: Nível de acesso (viewer, user, supervisor, admin)
-- `X-Internal`: (Opcional) Indica requisição interna
-
-#### Níveis de Acesso
-
-- `viewer`: Acesso somente leitura
-- `user`: Acesso de usuário padrão
-- `supervisor`: Acesso de supervisor
-- `admin`: Acesso administrativo completo
-
-#### Métodos do AuthProfile
-
-```go
-profile := middleware.GetAuthProfile(c)
-
-// Verificar se é administrador Zarv (role zarver + admin/supervisor)
-profile.IsZarvAdmin() // bool
-
-// Verificar se é administrador do workspace
-profile.IsUserAdmin() // bool
-
-// Verificar se tem apenas acesso de visualização
-profile.IsViewer() // bool
-```
+**[📖 Ver documentação completa →](docs/rabbitmq.md)**
 
 ## 🤝 Contribuindo
 
