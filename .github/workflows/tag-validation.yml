@@ -1,0 +1,37 @@
+name: Tag Validation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  validate:
+    name: Validate Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate semver tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          if [[ ! $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?(\+[a-zA-Z0-9]+)?$ ]]; then
+            echo "❌ Invalid semver tag: $TAG"
+            echo "Tag must follow semantic versioning: v1.0.0, v1.0.0-alpha, etc."
+            exit 1
+          fi
+          echo "✅ Valid semver tag: $TAG"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify module can be downloaded
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "Verifying go.mod..."
+          go mod download
+          go mod verify
+          echo "✅ Module is valid and can be downloaded"
