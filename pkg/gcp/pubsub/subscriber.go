@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	//nolint:staticcheck // v1 client kept for compatibility; upgrade to v2 pending.
 	"cloud.google.com/go/pubsub"
 )
 
@@ -53,11 +54,11 @@ func (c *client) NewSubscriber(subscriptionID string, handler SubscriberHandler)
 }
 
 // Receive starts receiving messages with the specified concurrency.
-// The method blocks until the context is cancelled or an error occurs.
+// The method blocks until the context is canceled or an error occurs.
 // It returns nil on graceful shutdown (context cancellation) or error on failure.
 //
 // Graceful Shutdown:
-// When the context is cancelled, Receive will:
+// When the context is canceled, Receive will:
 //  1. Stop accepting new messages
 //  2. Wait for in-flight messages to complete processing
 //  3. Return nil after cleanup
@@ -74,7 +75,7 @@ func (s *subscriber) Receive(concurrency int) error {
 		slog.String("subscription", s.name),
 		slog.Int("concurrency", concurrency))
 
-	// Receive blocks until context is cancelled
+	// Receive blocks until context is canceled
 	err := s.subscription.Receive(s.context, func(ctx context.Context, msg *pubsub.Message) {
 		s.handleMessage(ctx, msg)
 	})
@@ -86,7 +87,7 @@ func (s *subscriber) Receive(concurrency int) error {
 		return fmt.Errorf("subscription receive error: %w", err)
 	}
 
-	// Context was cancelled - graceful shutdown
+	// Context was canceled - graceful shutdown
 	slog.Info("subscriber stopped gracefully", slog.String("subscription", s.name))
 	return nil
 }

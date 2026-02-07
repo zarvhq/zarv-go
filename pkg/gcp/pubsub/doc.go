@@ -6,7 +6,7 @@
 // Features:
 //   - Thread-safe publisher operations
 //   - Context-aware graceful shutdown
-//   - Automatic JSON marshalling
+//   - Automatic JSON marshaling
 //   - Custom message attributes
 //   - Concurrent message processing
 //   - Panic recovery in handlers
@@ -103,7 +103,7 @@
 // Graceful Shutdown:
 //
 // The subscriber supports graceful shutdown via context cancellation.
-// When the context is cancelled, the subscriber will stop accepting new messages,
+// When the context is canceled, the subscriber will stop accepting new messages,
 // wait for in-flight messages to complete, and return nil.
 //
 //	ctx, cancel := context.WithCancel(context.Background())

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	//nolint:staticcheck // v1 client kept for compatibility; upgrade to v2 pending.
 	"cloud.google.com/go/pubsub"
 )
 
@@ -13,7 +14,7 @@ import (
 // The publisher automatically handles topic validation and provides thread-safe operations.
 type Publisher interface {
 	// Publish sends a message to the topic.
-	// The body will be automatically marshalled to JSON.
+	// The body will be automatically marshaled to JSON.
 	// Returns the message ID on success.
 	Publish(ctx context.Context, body any) (string, error)
 	// PublishWithAttributes sends a message with custom attributes to the topic.
@@ -53,14 +54,14 @@ func (c *client) NewPublisher(topicID string) (Publisher, error) {
 }
 
 // Publish sends a message to the topic.
-// The message body is automatically marshalled to JSON.
+// The message body is automatically marshaled to JSON.
 // Thread-safe: Multiple goroutines can safely call Publish concurrently.
 func (p *publisher) Publish(ctx context.Context, body any) (string, error) {
 	return p.PublishWithAttributes(ctx, body, nil)
 }
 
 // PublishWithAttributes sends a message with custom attributes to the topic.
-// The message body is automatically marshalled to JSON.
+// The message body is automatically marshaled to JSON.
 // Thread-safe: Multiple goroutines can safely call Publish concurrently.
 func (p *publisher) PublishWithAttributes(ctx context.Context, body any, attributes map[string]string) (string, error) {
 	p.mu.Lock()

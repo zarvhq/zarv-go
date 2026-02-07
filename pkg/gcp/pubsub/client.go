@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	//nolint:staticcheck // v1 client kept for compatibility; upgrade to v2 pending.
 	"cloud.google.com/go/pubsub"
 	"google.golang.org/api/option"
 )
@@ -46,6 +47,7 @@ func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 
 	var opts []option.ClientOption
 	if len(cfg.CredentialsJSON) > 0 {
+		//nolint:staticcheck // WithCredentialsJSON deprecated; kept to support legacy secret format.
 		opts = append(opts, option.WithCredentialsJSON(cfg.CredentialsJSON))
 	}
 

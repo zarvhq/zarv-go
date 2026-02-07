@@ -9,12 +9,14 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Cfg holds configuration needed to talk to Document AI.
 type Cfg struct {
 	ProjectID       string
 	Location        string
 	CredentialsJSON []byte // Optional: if not provided, uses Application Default Credentials (Workload Identity)
 }
 
+// Client exposes the minimal Document AI operations used by the service.
 type Client interface {
 	ProcessDocument(ctx context.Context, file []byte, mimeType string, processorID string) (*documentaipb.Document, error)
 }
@@ -24,6 +26,7 @@ type client struct {
 	cfg         *Cfg
 }
 
+// NewClient builds a Document AI client using optional explicit credentials.
 func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 	var opts []option.ClientOption
 	if cfg.CredentialsJSON != nil {
@@ -45,6 +48,7 @@ func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 	}, nil
 }
 
+// ProcessDocument sends a document to the configured processor and returns the parsed result.
 func (c *client) ProcessDocument(ctx context.Context, file []byte, mimeType string, processorID string) (*documentaipb.Document, error) {
 	req := &documentaipb.ProcessRequest{
 		Name: "projects/" + c.cfg.ProjectID + "/locations/" + c.cfg.Location + "/processors/" + processorID,

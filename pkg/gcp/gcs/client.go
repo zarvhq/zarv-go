@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -12,8 +13,10 @@ import (
 	"google.golang.org/api/option"
 )
 
+// ErrObjectNotFound is returned when the requested object does not exist.
 const ErrObjectNotFound = "object not found"
 
+// Cfg holds configuration options for the GCS client.
 type Cfg struct {
 	BucketName      string
 	DatalakeBucket  string // Datalake bucket name
@@ -22,6 +25,7 @@ type Cfg struct {
 	Local           bool   // Set to true for local development
 }
 
+// Object represents stored data and metadata for a GCS object.
 type Object struct {
 	Key         string `json:"key,omitempty"`
 	Data        []byte `json:"data,omitempty"`
@@ -29,12 +33,14 @@ type Object struct {
 	Encoding    string `json:"encoding,omitempty"`
 }
 
+// SignedURL bundles a pre-signed URL with its metadata.
 type SignedURL struct {
 	URL       string `json:"url"`
 	Method    string `json:"method"`
 	ExpiresAt string `json:"expiresAt"`
 }
 
+// Client defines the operations supported by the GCS client wrapper.
 type Client interface {
 	GetObject(key string) (*Object, error)
 	PutObject(obj *Object) error
@@ -54,6 +60,7 @@ const (
 	lifetimeSecs = 120
 )
 
+// NewClient creates a new Google Cloud Storage client with optional custom endpoint/credentials.
 func NewClient(ctx context.Context, cfg *Cfg) (*client, error) {
 	var opts []option.ClientOption
 
@@ -113,7 +120,12 @@ func (c *client) GetObject(key string) (*Object, error) {
 		}
 		return nil, fmt.Errorf("error getting object: %w", err)
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			// close error is logged but read data is already in memory
+			slog.Error("error closing gcs reader", slog.String("error", err.Error()), slog.String("key", key))
+		}
+	}()
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
@@ -146,7 +158,9 @@ func (c *client) PutObject(obj *Object) error {
 	writer.ContentEncoding = obj.Encoding
 
 	if _, err := io.Copy(writer, bytes.NewReader(obj.Data)); err != nil {
-		writer.Close()
+		if closeErr := writer.Close(); closeErr != nil {
+			slog.Error("error closing writer after failed write", slog.String("error", closeErr.Error()), slog.String("key", obj.Key))
+		}
 		return fmt.Errorf("error writing object: %w", err)
 	}
 

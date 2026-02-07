@@ -15,7 +15,7 @@ import (
 // a new Client must be created.
 type Producer interface {
 	// Publish sends a message to the specified queue.
-	// The body will be automatically marshalled to JSON.
+	// The body will be automatically marshaled to JSON.
 	// Messages are published as persistent (survive broker restarts).
 	// If the channel is closed, Publish will attempt to reconnect automatically.
 	Publish(queueName string, body any) error
@@ -53,7 +53,7 @@ func (c *client) NewProducer() (Producer, error) {
 }
 
 // Publish sends a message to the specified queue.
-// The message body is automatically marshalled to JSON and published as persistent.
+// The message body is automatically marshaled to JSON and published as persistent.
 //
 // Automatic Reconnection:
 // If the channel is closed (due to network issues or broker restart), Publish will
@@ -164,7 +164,7 @@ func (p *producer) monitorChannel() {
 			_ = err // Log if needed
 		}
 	case <-p.context.Done():
-		// Context cancelled
+		// Context canceled
 		return
 	}
 }

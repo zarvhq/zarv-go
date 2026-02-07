@@ -9,6 +9,7 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
+// Consumer consumes messages from a RabbitMQ queue.
 type Consumer interface {
 	Consume(concurrency int) error
 }
@@ -21,6 +22,7 @@ type consumer struct {
 	context   context.Context
 }
 
+// NewConsumer creates a new queue consumer bound to the provided queue and handler.
 func (k *client) NewConsumer(consumerName, queueName string, handler ConsumerHandler) (Consumer, error) {
 	return &consumer{
 		name:      consumerName,
@@ -31,6 +33,7 @@ func (k *client) NewConsumer(consumerName, queueName string, handler ConsumerHan
 	}, nil
 }
 
+// Consume starts consuming messages with a given concurrency level.
 func (c *consumer) Consume(concurrency int) error {
 	ch, err := c.conn.Channel()
 	if err != nil {
@@ -40,7 +43,11 @@ func (c *consumer) Consume(concurrency int) error {
 	closeChan := make(chan *amqp091.Error, 1)
 	ch.NotifyClose(closeChan)
 
-	defer ch.Close()
+	defer func() {
+		if err := ch.Close(); err != nil {
+			slog.Error("error closing channel", slog.String("error", err.Error()), slog.String("handler", c.name))
+		}
+	}()
 
 	// Declare queue as durable for production reliability
 	q, err := ch.QueueDeclare(
@@ -93,7 +100,7 @@ func (c *consumer) Consume(concurrency int) error {
 			}
 			close(done)
 		case <-c.context.Done():
-			slog.Info("context cancelled", slog.String("handler", c.name))
+			slog.Info("context canceled", slog.String("handler", c.name))
 			close(done)
 		}
 	}()
@@ -116,7 +123,9 @@ func (c *consumer) Consume(concurrency int) error {
 			}
 
 			if len(msg.Body) == 0 {
-				msg.Ack(false)
+				if err := msg.Ack(false); err != nil {
+					slog.Error("failed to ack empty message", slog.String("error", err.Error()), slog.String("handler", c.name))
+				}
 				continue
 			}
 
@@ -125,6 +134,7 @@ func (c *consumer) Consume(concurrency int) error {
 	}
 }
 
+// HandleMessage wraps handler invocation with ack/nack and panic recovery.
 func (c *consumer) HandleMessage(msg amqp091.Delivery, wg *sync.WaitGroup, semaphore chan struct{}) {
 	semaphore <- struct{}{}
 	wg.Add(1)
@@ -136,7 +146,9 @@ func (c *consumer) HandleMessage(msg amqp091.Delivery, wg *sync.WaitGroup, semap
 			slog.Error("panic recovered in message handler",
 				slog.Any("panic", r),
 				slog.String("handler", c.name))
-			msg.Nack(false, true)
+			if err := msg.Nack(false, true); err != nil {
+				slog.Error("failed to nack message after panic", slog.String("error", err.Error()), slog.String("handler", c.name))
+			}
 		}
 	}()
 
@@ -144,10 +156,14 @@ func (c *consumer) HandleMessage(msg amqp091.Delivery, wg *sync.WaitGroup, semap
 		slog.Error("error handling message",
 			slog.String("error", err.Error()),
 			slog.String("handler", c.name))
-		msg.Nack(false, true)
+		if err := msg.Nack(false, true); err != nil {
+			slog.Error("failed to nack message", slog.String("error", err.Error()), slog.String("handler", c.name))
+		}
 		return
 	}
 
 	slog.Debug("message handled successfully", slog.String("handler", c.name))
-	msg.Ack(false)
+	if err := msg.Ack(false); err != nil {
+		slog.Error("failed to ack message", slog.String("error", err.Error()), slog.String("handler", c.name))
+	}
 }

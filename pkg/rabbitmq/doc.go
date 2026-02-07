@@ -56,7 +56,7 @@
 // Graceful Shutdown:
 //
 // The consumer supports graceful shutdown via context cancellation.
-// When the context is cancelled, the consumer will:
+// When the context is canceled, the consumer will:
 //
 //  1. Stop accepting new messages
 //
