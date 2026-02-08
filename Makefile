@@ -18,16 +18,18 @@ tidy:
 
 ci: lint test build
 
-# Show latest semver tag (defaults to v0.0.0 if none).
+# Show highest semver tag anywhere in the repo history (defaults to v0.0.0).
 last-tag:
-	@last=$$(git describe --tags --match "v[0-9]*.[0-9]*.[0-9]*" --abbrev=0 2>/dev/null || echo v0.0.0); \
+	@last=$$(git tag --list "v[0-9]*.[0-9]*.[0-9]*" | sort -V | tail -n1); \
+	if [ -z "$$last" ]; then last=v0.0.0; fi; \
 	echo $$last
 
 # Create and push a semver tag. If VERSION is not provided, bumps the patch
 # from the latest semver tag (or starts at v0.0.1).
 # Usage: make tag VERSION=1.2.3
 tag:
-	@last=$$(git describe --tags --match "v[0-9]*.[0-9]*.[0-9]*" --abbrev=0 2>/dev/null || echo v0.0.0); \
+	@last=$$(git tag --list "v[0-9]*.[0-9]*.[0-9]*" | sort -V | tail -n1); \
+	if [ -z "$$last" ]; then last=v0.0.0; fi; \
 	version=$${VERSION}; \
 	if [ -z "$$version" ]; then \
 		base=$${last#v}; IFS=. read -r maj min patch <<< "$$base"; \
@@ -35,7 +37,7 @@ tag:
 		echo "VERSION not set, bumping patch: $$last -> v$$version"; \
 	fi; \
 	new_tag="v$$version"; \
-	if [ "$$new_tag" = "$$last" ]; then echo "Tag $$new_tag already exists"; exit 1; fi; \
+	if git show-ref --tags "$$new_tag" >/dev/null 2>&1; then echo "Tag $$new_tag already exists locally"; exit 1; fi; \
 	if git ls-remote --exit-code --tags origin "$$new_tag" >/dev/null 2>&1; then \
 		echo "Tag $$new_tag already exists on origin"; exit 1; \
 	fi; \
