@@ -12,6 +12,9 @@ import (
 // the ability to match historical events.
 const hmacVersion = "v1"
 
+// redactedValue replaces sensitive field values in changes/metadata.
+const redactedValue = "[redacted]"
+
 var nonDigits = regexp.MustCompile(`\D`)
 
 // Subject returns a keyed HMAC of a CPF/CNPJ, formatted "hmac:v1:<hex>", so the
@@ -41,7 +44,7 @@ func redact(m map[string]any) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {
 		if sensitiveKey.MatchString(k) {
-			out[k] = "[redacted]"
+			out[k] = redactedValue
 			continue
 		}
 		switch vv := v.(type) {
