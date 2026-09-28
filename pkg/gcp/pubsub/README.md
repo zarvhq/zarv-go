@@ -109,6 +109,25 @@ Por padrão `NewPublisher` valida que o tópico existe, o que exige a permissão
 publisher, err := client.NewPublisher("meu-topico", pubsub.WithoutTopicExistsCheck())
 ```
 
+#### Batching (flush agrupado)
+
+O cliente já agrupa mensagens por padrão: cada `Publish`/`PublishAsync` enfileira
+no batch atual, que é enviado quando algum limite é atingido — `DelayThreshold`
+(10ms), `CountThreshold` (100 mensagens) ou `ByteThreshold` (1MB). Basta manter
+**um** publisher vivo (não crie um por mensagem) para que muitas mensagens virem
+poucas requisições; `Stop()` faz o flush final. Para volumes altos (ex.: eventos
+de auditoria por request), aumente os limites com `WithBatchSettings`, que parte
+dos defaults e só altera o que você tocar:
+
+```go
+publisher, err := client.NewPublisher("meu-topico",
+    pubsub.WithBatchSettings(func(s *pubsub.PublishSettings) {
+        s.DelayThreshold = 100 * time.Millisecond // espera até 100ms para formar batches maiores
+        s.CountThreshold = 500                     // ou 500 mensagens
+    }),
+)
+```
+
 ### Subscriber (Consumir mensagens de subscriptions)
 
 ```go
