@@ -137,3 +137,29 @@ func TestPublishAsync_NilBodyReportsErrorToCallback(t *testing.T) {
 		t.Fatal("callback was not invoked for a nil body")
 	}
 }
+
+func TestWithBatchSettings_TunesOverDefaults(t *testing.T) {
+	c, _ := newTestClient(t)
+	mustTopic(t, c, "events")
+
+	p, err := c.NewPublisher("events", WithBatchSettings(func(s *pubsub.PublishSettings) {
+		s.CountThreshold = 250
+		s.DelayThreshold = 100 * time.Millisecond
+	}))
+	if err != nil {
+		t.Fatalf("new publisher: %v", err)
+	}
+	defer p.Stop()
+
+	got := p.(*publisher).topic.PublishSettings
+	if got.CountThreshold != 250 {
+		t.Fatalf("CountThreshold = %d, want 250", got.CountThreshold)
+	}
+	if got.DelayThreshold != 100*time.Millisecond {
+		t.Fatalf("DelayThreshold = %v, want 100ms", got.DelayThreshold)
+	}
+	// A field left untouched keeps the client default.
+	if got.ByteThreshold != pubsub.DefaultPublishSettings.ByteThreshold {
+		t.Fatalf("ByteThreshold = %d, want default %d", got.ByteThreshold, pubsub.DefaultPublishSettings.ByteThreshold)
+	}
+}

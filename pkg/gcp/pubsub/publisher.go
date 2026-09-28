@@ -36,6 +36,19 @@ type PublisherOption func(*publisherConfig)
 
 type publisherConfig struct {
 	skipExistsCheck bool
+	batchSettings   func(*pubsub.PublishSettings)
+}
+
+// WithBatchSettings tunes the client-side publish batching (grouped flush). The
+// client already batches by default (DelayThreshold 10ms, CountThreshold 100,
+// ByteThreshold 1MB): each Publish enqueues into the current batch, which is
+// flushed when any threshold trips, so one long-lived publisher groups many
+// messages into few requests. mutate receives a copy of
+// pubsub.DefaultPublishSettings, so fields left untouched keep those defaults.
+// Raise DelayThreshold/CountThreshold to form larger batches under high volume
+// (e.g. audit access events).
+func WithBatchSettings(mutate func(*pubsub.PublishSettings)) PublisherOption {
+	return func(c *publisherConfig) { c.batchSettings = mutate }
 }
 
 // WithoutTopicExistsCheck skips the topic.Exists lookup in NewPublisher. That
@@ -66,6 +79,12 @@ func (c *client) NewPublisher(topicID string, opts ...PublisherOption) (Publishe
 	}
 
 	topic := c.pubsubClient.Topic(topicID)
+
+	if cfg.batchSettings != nil {
+		settings := pubsub.DefaultPublishSettings
+		cfg.batchSettings(&settings)
+		topic.PublishSettings = settings
+	}
 
 	if !cfg.skipExistsCheck {
 		exists, err := topic.Exists(c.context)
