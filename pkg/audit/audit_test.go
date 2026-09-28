@@ -93,10 +93,10 @@ func TestEmit_RedactsSensitiveFields(t *testing.T) {
 		},
 	})
 	ev := pub.body.(Event)
-	if ev.Changes["password"] != "[redacted]" {
+	if ev.Changes["password"] != redactedValue {
 		t.Errorf("password not redacted: %v", ev.Changes["password"])
 	}
-	if ev.Changes["nested"].(map[string]any)["api_key"] != "[redacted]" {
+	if ev.Changes["nested"].(map[string]any)["api_key"] != redactedValue {
 		t.Errorf("nested api_key not redacted")
 	}
 	if ev.Changes["nested"].(map[string]any)["ok"] != "v" {
