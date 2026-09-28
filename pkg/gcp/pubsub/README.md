@@ -75,6 +75,40 @@ func main() {
 }
 ```
 
+#### Publicação assíncrona (sem bloquear a request)
+
+`PublishAsync` enfileira a mensagem e retorna imediatamente, sem esperar o
+round-trip com o servidor. O resultado (ID ou erro) chega pelo callback. Ideal
+para caminhos sensíveis a latência, como emissão de eventos de auditoria, onde
+a publicação não pode adicionar latência à request. Chame `Stop()` no shutdown
+para drenar as mensagens pendentes.
+
+```go
+publisher.PublishAsync(ctx,
+    map[string]string{"data": "value"},
+    nil, // atributos
+    func(id string, err error) {
+        if err != nil {
+            log.Printf("falha ao publicar: %v", err)
+            return
+        }
+        log.Printf("publicado: %s", id)
+    },
+)
+// callback pode ser nil (fire-and-forget)
+```
+
+#### Publisher sem checagem de existência do tópico
+
+Por padrão `NewPublisher` valida que o tópico existe, o que exige a permissão
+`pubsub.topics.get`. Uma service account somente de publicação
+(`roles/pubsub.publisher`) não tem essa permissão; passe
+`WithoutTopicExistsCheck()` para pular a checagem quando o tópico já é conhecido:
+
+```go
+publisher, err := client.NewPublisher("meu-topico", pubsub.WithoutTopicExistsCheck())
+```
+
 ### Subscriber (Consumir mensagens de subscriptions)
 
 ```go

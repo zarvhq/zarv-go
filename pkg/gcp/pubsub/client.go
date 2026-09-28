@@ -12,7 +12,7 @@ import (
 // Client represents a Google Cloud Pub/Sub client that manages connections and creates publishers/subscribers.
 type Client interface {
 	// NewPublisher creates a new publisher for the specified topic.
-	NewPublisher(topicID string) (Publisher, error)
+	NewPublisher(topicID string, opts ...PublisherOption) (Publisher, error)
 	// NewSubscriber creates a new subscriber for the specified subscription.
 	NewSubscriber(subscriptionID string, handler SubscriberHandler) (Subscriber, error)
 	// CreateTopic creates a new topic if it doesn't exist.
