@@ -23,9 +23,26 @@ type subscriber struct {
 	name         string
 }
 
+// SubscriberOption configures a subscriber at creation time.
+type SubscriberOption func(*subscriberConfig)
+
+type subscriberConfig struct {
+	skipExistsCheck bool
+}
+
+// WithoutSubscriptionExistsCheck skips the subscription.Exists lookup in
+// NewSubscriber. That lookup requires the pubsub.subscriptions.get permission; a
+// receive-only service account (roles/pubsub.subscriber) does not have it, so
+// skip the check when the subscription is known to exist (e.g. provisioned by
+// IaC) and the caller should not be granted get. Mirrors WithoutTopicExistsCheck.
+func WithoutSubscriptionExistsCheck() SubscriberOption {
+	return func(c *subscriberConfig) { c.skipExistsCheck = true }
+}
+
 // NewSubscriber creates a new subscriber for receiving messages from a subscription.
-// The subscription must exist before calling this method.
-func (c *client) NewSubscriber(subscriptionID string, handler SubscriberHandler) (Subscriber, error) {
+// By default it validates that the subscription exists; pass
+// WithoutSubscriptionExistsCheck to skip that lookup (see the option's docs).
+func (c *client) NewSubscriber(subscriptionID string, handler SubscriberHandler, opts ...SubscriberOption) (Subscriber, error) {
 	if subscriptionID == "" {
 		return nil, fmt.Errorf("subscription ID cannot be empty")
 	}
@@ -34,15 +51,21 @@ func (c *client) NewSubscriber(subscriptionID string, handler SubscriberHandler)
 		return nil, fmt.Errorf("handler cannot be nil")
 	}
 
+	cfg := subscriberConfig{}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	sub := c.pubsubClient.Subscription(subscriptionID)
 
-	// Check if subscription exists
-	exists, err := sub.Exists(c.context)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check if subscription exists: %w", err)
-	}
-	if !exists {
-		return nil, fmt.Errorf("subscription %s does not exist", subscriptionID)
+	if !cfg.skipExistsCheck {
+		exists, err := sub.Exists(c.context)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if subscription exists: %w", err)
+		}
+		if !exists {
+			return nil, fmt.Errorf("subscription %s does not exist", subscriptionID)
+		}
 	}
 
 	return &subscriber{
