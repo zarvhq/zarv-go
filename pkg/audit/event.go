@@ -36,23 +36,23 @@ type Actor struct {
 	Type        ActorType `json:"type"`
 	ID          string    `json:"id,omitempty"`
 	Sub         string    `json:"sub,omitempty"`
-	WorkspaceID string    `json:"workspace_id,omitempty"`
-	OrgID       string    `json:"org_id,omitempty"`
+	WorkspaceID string    `json:"workspaceId,omitempty"`
+	OrgID       string    `json:"orgId,omitempty"`
 	Client      string    `json:"client,omitempty"`
 	IP          string    `json:"ip,omitempty"`
-	UserAgent   string    `json:"user_agent,omitempty"`
+	UserAgent   string    `json:"userAgent,omitempty"`
 	// Service is set by the consumer from the topic, not by the producer; kept
 	// here so the shape matches the stored row.
 	Service string `json:"service,omitempty"`
 	// OnBehalfOf is set for agents/impersonation: who the actor acts for.
-	OnBehalfOf string `json:"on_behalf_of,omitempty"`
+	OnBehalfOf string `json:"onBehalfOf,omitempty"`
 }
 
 // Target is the resource the action affected.
 type Target struct {
 	Type        string `json:"type,omitempty"`
 	ID          string `json:"id,omitempty"`
-	WorkspaceID string `json:"workspace_id,omitempty"`
+	WorkspaceID string `json:"workspaceId,omitempty"`
 	Version     string `json:"version,omitempty"`
 }
 
@@ -67,7 +67,7 @@ type Outcome struct {
 type Event struct {
 	ID         string         `json:"id"`
 	Schema     int            `json:"schema"`
-	OccurredAt string         `json:"occurred_at"`
+	OccurredAt string         `json:"occurredAt"`
 	Action     string         `json:"action"` // "<service>.<resource>.<verb>"
 	Outcome    Outcome        `json:"outcome"`
 	Actor      Actor          `json:"actor"`
@@ -75,9 +75,9 @@ type Event struct {
 	Subject    string         `json:"subject,omitempty"` // HMAC of a CPF/CNPJ, never the raw value
 	Changes    map[string]any `json:"changes,omitempty"` // before/after of changed fields
 	Data       map[string]any `json:"data,omitempty"`    // read receipt (categories, counts) — never a payload
-	RequestID  string         `json:"request_id,omitempty"`
-	CausedBy   string         `json:"caused_by,omitempty"`
+	RequestID  string         `json:"requestId,omitempty"`
+	CausedBy   string         `json:"causedBy,omitempty"`
 	Trigger    string         `json:"trigger,omitempty"` // schedule:<job> | queue:<name> | webhook:<source>
-	RunID      string         `json:"run_id,omitempty"`
+	RunID      string         `json:"runId,omitempty"`
 	Metadata   map[string]any `json:"metadata,omitempty"`
 }
