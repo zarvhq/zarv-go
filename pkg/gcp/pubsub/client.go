@@ -14,7 +14,7 @@ type Client interface {
 	// NewPublisher creates a new publisher for the specified topic.
 	NewPublisher(topicID string, opts ...PublisherOption) (Publisher, error)
 	// NewSubscriber creates a new subscriber for the specified subscription.
-	NewSubscriber(subscriptionID string, handler SubscriberHandler) (Subscriber, error)
+	NewSubscriber(subscriptionID string, handler SubscriberHandler, opts ...SubscriberOption) (Subscriber, error)
 	// CreateTopic creates a new topic if it doesn't exist.
 	CreateTopic(topicID string) error
 	// CreateSubscription creates a new subscription for a topic if it doesn't exist.
