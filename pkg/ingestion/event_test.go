@@ -6,11 +6,15 @@ import (
 	"testing"
 )
 
-func TestTheEnvelopeIsTheGatewaysShape(t *testing.T) {
+// An Event is the gateway's body, field for field; the package adds nothing
+// and renames nothing.
+func TestTheEnvelopeIsTheEventAsItIs(t *testing.T) {
 	ev := Event{
-		Domain: "billing", Service: "plan", Operation: "UPDATE", Description: "plan renamed",
-		Data:     map[string]any{"id": "p1", "name": "Pro"},
-		Metadata: map[string]any{"source": "zarv-billing"},
+		TableName:   "billing_plan",
+		Operation:   "UPDATE",
+		Description: "plan renamed",
+		UniqueKey:   "id",
+		Data:        map[string]any{"id": "p1", "name": "Pro"},
 	}
 	got, err := ev.envelope()
 	if err != nil {
@@ -20,105 +24,61 @@ func TestTheEnvelopeIsTheGatewaysShape(t *testing.T) {
 		"table_name":  "billing_plan",
 		"operation":   "UPDATE",
 		"description": "plan renamed",
-		"data": map[string]any{
-			"id": "p1", "name": "Pro",
-			EventMetadataField: map[string]any{"source": "zarv-billing"},
-		},
+		"unique_key":  "id",
+		"data":        map[string]any{"id": "p1", "name": "Pro"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("envelope =\n  %v\nwant\n  %v", got, want)
 	}
 }
 
-// The producer's own `metadata` field is theirs: asset/asset, users/audit and
-// id/verification send one in data. The event's metadata goes beside it.
-func TestTheProducersOwnMetadataFieldIsKept(t *testing.T) {
-	ev := Event{
-		Domain: "asset", Service: "asset",
-		Data:     map[string]any{"id": "a1", "metadata": map[string]any{"color": "red"}},
-		Metadata: map[string]any{"source": "asset-management"},
-	}
-	got, err := ev.envelope()
+// The optional fields are left out when empty, so the gateway's own defaults
+// apply: INSERT, no description, its default record key.
+func TestEmptyOptionalFieldsAreLeftOut(t *testing.T) {
+	got, err := Event{TableName: "billing_plan", Data: map[string]any{"id": "p1"}}.envelope()
 	if err != nil {
 		t.Fatal(err)
 	}
-	data := got["data"].(map[string]any)
-	if !reflect.DeepEqual(data["metadata"], map[string]any{"color": "red"}) {
-		t.Errorf("data.metadata = %v, the producer's field was overwritten", data["metadata"])
-	}
-	if !reflect.DeepEqual(data[EventMetadataField], map[string]any{"source": "asset-management"}) {
-		t.Errorf("data.%s = %v", EventMetadataField, data[EventMetadataField])
+	for _, k := range []string{"operation", "description", "unique_key"} {
+		if _, ok := got[k]; ok {
+			t.Errorf("%s was sent empty", k)
+		}
 	}
 }
 
-// Building the envelope must not touch the caller's map: a retry, or the
-// caller's own use of it afterwards, would see the event metadata inside.
+// Nothing is translated: the gateway is what judges a table name or an
+// operation, and its answer reaches the producer.
+func TestNothingIsTranslated(t *testing.T) {
+	got, err := Event{TableName: "Billing Plan", Operation: "create", Data: map[string]any{"id": 1}}.envelope()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got["table_name"] != "Billing Plan" || got["operation"] != "create" {
+		t.Errorf("table_name, operation = %v, %v; want them as the producer sent them", got["table_name"], got["operation"])
+	}
+}
+
+// The request cannot be built without a table or a record, so those two are
+// refused before anything is sent; everything else is the gateway's to check.
+func TestAnEventWithoutATableOrDataIsRefused(t *testing.T) {
+	for name, ev := range map[string]Event{
+		"no table": {Data: map[string]any{"id": 1}},
+		"blank":    {TableName: "  ", Data: map[string]any{"id": 1}},
+		"no data":  {TableName: "billing_plan"},
+	} {
+		if _, err := ev.envelope(); !errors.Is(err, ErrInvalidEvent) {
+			t.Errorf("%s: err = %v, want ErrInvalidEvent", name, err)
+		}
+	}
+}
+
+// The caller's map is sent as is and never modified.
 func TestTheCallersDataIsNotMutated(t *testing.T) {
 	data := map[string]any{"id": "p1"}
-	ev := Event{Domain: "billing", Service: "plan", Data: data, Metadata: map[string]any{"k": "v"}}
-	if _, err := ev.envelope(); err != nil {
+	if _, err := (Event{TableName: "billing_plan", Data: data}).envelope(); err != nil {
 		t.Fatal(err)
 	}
 	if len(data) != 1 {
 		t.Errorf("the caller's data was mutated: %v", data)
-	}
-}
-
-func TestNoMetadataMeansNoEventMetadataField(t *testing.T) {
-	got, err := Event{Domain: "billing", Service: "plan", Data: map[string]any{"id": "p1"}}.envelope()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := got["data"].(map[string]any)[EventMetadataField]; ok {
-		t.Errorf("%s was added with no metadata to carry", EventMetadataField)
-	}
-}
-
-// The gateway accepts INSERT, UPDATE and DELETE, case-insensitive, and reads an
-// empty one as INSERT. History also has CREATE, REPLACE and UPSERT, which have
-// an unambiguous meaning; anything else goes through for the gateway to refuse.
-func TestTheOperationIsTranslatedToTheGatewaysVerbs(t *testing.T) {
-	for in, want := range map[string]any{
-		"":        nil,
-		"insert":  "INSERT",
-		"update":  "UPDATE",
-		"DELETE":  "DELETE",
-		"CREATE":  "INSERT",
-		"create":  "INSERT",
-		"REPLACE": "UPDATE",
-		"UPSERT":  "UPDATE",
-		"NOOP":    "NOOP",
-	} {
-		got, err := Event{Domain: "billing", Service: "plan", Operation: in, Data: map[string]any{"id": 1}}.envelope()
-		if err != nil {
-			t.Fatalf("%q: %v", in, err)
-		}
-		if got["operation"] != want {
-			t.Errorf("operation %q became %v, want %v", in, got["operation"], want)
-		}
-	}
-}
-
-func TestAnEventWithoutDataIsRefused(t *testing.T) {
-	_, err := Event{Domain: "billing", Service: "plan"}.envelope()
-	if !errors.Is(err, ErrInvalidEvent) {
-		t.Fatalf("err = %v, want ErrInvalidEvent", err)
-	}
-}
-
-func TestAProvidersEventLandsInItsProvidersTable(t *testing.T) {
-	got, err := Event{
-		Domain: "id", Service: "providers", Data: map[string]any{"cpf": "x"},
-		Metadata: map[string]any{"provider": "bigdatacorp", "path": "peoplev2", "dataset": "basic_data,addresses"},
-	}.envelope()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got["table_name"] != "id_providers_bigdatacorp_peoplev2" {
-		t.Errorf("table_name = %v", got["table_name"])
-	}
-	md := got["data"].(map[string]any)[EventMetadataField].(map[string]any)
-	if md["dataset"] != "basic_data,addresses" {
-		t.Errorf("the dataset did not travel in the metadata: %v", md)
 	}
 }

@@ -31,36 +31,30 @@ MaxAttempts}` and `New(cfg) (*Client, error)`. URL and key default to
 **Files:** `pkg/ingestion/client.go`, `pkg/ingestion/client_test.go`, `pkg/ingestion/doc.go`
 **Scope:** S
 
-### Task 2: the envelope and `TableName`
+### Task 2: the Event, as the gateway reads it
 
-**Done:** 2026-09-30. Two decisions by the operator, from what production sends:
-the event's metadata travels under `data.event_metadata`, because `metadata` is
-already a field of the producers' own records (asset/asset 1.19M events,
-users/audit 624k, id/verification 357k...); and CREATE becomes INSERT, REPLACE
-and UPSERT become UPDATE (6,710 historical events the gateway would refuse).
-The history test: 108 tables, no collision, the longest 58 characters.
+**Done:** 2026-09-30. A first version carried the legacy conversion (domain and
+service to table_name, the id/providers rule, event_metadata, the operation's
+synonyms); the operator moved all of it to the data-api (`74d40b8` → the next
+commit), so zarv-go carries nothing legacy.
 
-**Description:** `Event{Domain, Service, Operation, Description, Data, Metadata}`
-and the envelope it becomes: `{table_name, operation, description, data}`, with
-`data` = the event's fields plus `event_metadata`. `TableName(domain, service,
-metadata)` is exported and is the one implementation of the naming rule.
+**Description:** `Event{TableName, Data, Operation, Description, UniqueKey}` is
+the gateway's body, field for field. The package adds nothing and translates
+nothing; an empty optional field is left out so the gateway's default applies.
 
 **Acceptance criteria:**
-- [x] `<domain>_<service>` normalised: lowercase, anything outside `[a-z0-9_]`
-      to `_`, repeats collapsed, trimmed (`id` + `Verification failed` →
-      `id_verification_failed`)
-- [x] `id` + `providers` → `id_providers_<metadata.provider>_<metadata.path>`,
-      normalised; a providers event without `provider` or `path` is an error naming
-      the field
-- [x] A test over the 94 historical `domain_service` and the 16 `provider|path`
-      pairs (all history): no two onto one name, each within `TablePattern`
+- [x] The envelope is the Event as it is: `{table_name, data, operation?,
+      description?, unique_key?}`
+- [x] Only a missing table name or data is refused (`ErrInvalidEvent`): the rest
+      is the gateway's to judge
+- [x] The caller's `Data` is never modified
 
 **Verification:**
-- [ ] `go test ./pkg/ingestion/...`
+- [x] `go test -race ./pkg/ingestion/...`; `golangci-lint` clean
 
 **Dependencies:** Task 1
-**Files:** `pkg/ingestion/event.go`, `pkg/ingestion/table.go`, their tests, a fixture of the historical names
-**Scope:** M
+**Files:** `pkg/ingestion/event.go`, `pkg/ingestion/event_test.go`
+**Scope:** S
 
 ### Task 3: `Send`, its errors, and its retries
 
@@ -130,10 +124,12 @@ every consumer then pins.
 ### Task 6: the data-api bridge on top of it
 
 **Description:** In `zarv-data-api`, `internal/usecase/ingestion_usecase.go`
-becomes a thin adapter: it maps the request to `ingestion.Event` and calls
-`Client.Send`, returning the gateway's refusal to the producer. This is T8 of
-`zarv-data-pipeline/tasks/todo.md`, now implemented with this package instead of
-its own client and naming code.
+converts the legacy body into an `ingestion.Event` -- the table name from domain
+and service with the `id/providers` rule, the event's metadata under
+`event_metadata`, CREATE/REPLACE/UPSERT translated -- and calls `Client.Send`,
+returning the gateway's refusal to the producer. The conversion and its history
+test live in the data-api; this package is only the transport. This is T8 of
+`zarv-data-pipeline/tasks/todo.md`.
 
 **Acceptance criteria:**
 - [ ] The use case depends on the ingestion client only; the Pub/Sub publisher,
