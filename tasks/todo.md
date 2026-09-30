@@ -11,15 +11,17 @@ Every task: `make ci` (lint, test, build) green before its commit.
 
 ### Task 1: configuration and `New`
 
+**Done:** 2026-09-30 -- 10 tests, `-race`, `golangci-lint` v2.8.0 clean.
+
 **Description:** `pkg/ingestion` with `Config{URL, Key, HTTPClient, Logger,
 MaxAttempts}` and `New(cfg) (*Client, error)`. URL and key default to
 `ZARV_INGESTION_URL` and `ZARV_INGESTION_KEY`; a `Config` field overrides each.
 
 **Acceptance criteria:**
-- [ ] `New` fails when the URL is unset, naming `ZARV_INGESTION_URL`
-- [ ] `New` fails when the URL is not an absolute `http` or `https` URL, and when
+- [x] `New` fails when the URL is unset, naming `ZARV_INGESTION_URL`
+- [x] `New` fails when the URL is not an absolute `http` or `https` URL, and when
       the key is unset, naming the variable and never the value
-- [ ] Defaults: an `http.Client` with a timeout, `slog.Default()`, a bounded
+- [x] Defaults: an `http.Client` with a timeout, `slog.Default()`, a bounded
       number of attempts
 
 **Verification:**
