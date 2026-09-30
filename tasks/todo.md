@@ -109,8 +109,8 @@ variables, the naming rule, what each error means, the retry guarantee),
 every consumer then pins.
 
 **Acceptance criteria:**
-- [ ] README and godoc complete; `golangci-lint run` clean
-- [ ] `CHANGELOG.md` has the `pkg/ingestion` entry
+- [x] README and godoc complete; `golangci-lint run` clean
+- [x] `CHANGELOG.md` has the `pkg/ingestion` entry
 - [ ] Tag `v0.1.0` pushed (`make release VERSION=0.1.0`), after the operator's go
 
 **Dependencies:** Task 4

@@ -67,6 +67,24 @@ import "github.com/zarvhq/zarv-go/pkg/rabbitmq"
 
 **[📖 Ver documentação completa →](docs/rabbitmq.md)**
 
+---
+
+### 📥 [Ingestion](pkg/ingestion/README.md)
+
+Envio de eventos ao gateway de ingestão, que grava cada um na sua tabela `bronze`.
+
+```go
+import "github.com/zarvhq/zarv-go/pkg/ingestion"
+```
+
+**Funcionalidades:**
+- Configuração por `ZARV_INGESTION_URL` e `ZARV_INGESTION_KEY`, validada na partida
+- Novas tentativas seguras, respeitando `Retry-After`
+- Recusas do gateway como erros tipados, inclusive dentro de um 202
+- Uma linha de log por falha, sem registro nem chave
+
+**[📖 Ver documentação completa →](pkg/ingestion/README.md)**
+
 ## 🤝 Contribuindo
 
 1. Faça um fork do projeto
