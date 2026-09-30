@@ -3,9 +3,11 @@
 ## Overview
 
 A Go package that lets any team send an event to the Brevis ingestion gateway in
-a few lines, the right way: the gateway's envelope, the Zarv table-naming rule,
-Bearer auth, retries that cannot duplicate, and a clear error when the gateway
-refuses. It fails fast when its configuration is missing — the gateway URL has to
+a few lines, the right way: the gateway's own body, Bearer auth, retries that
+cannot duplicate, and a clear error when the gateway refuses. **It speaks only
+the gateway's current body** -- `table_name`, `data`, `operation`,
+`description`, `unique_key`. Nothing of the legacy `{domain, service, ...}`
+shape comes into zarv-go: converting it is the data-api's job. It fails fast when its configuration is missing — the gateway URL has to
 be in the environment.
 
 It is one of the two roads producers take into `bronze` (the migration plan in
@@ -17,10 +19,10 @@ legacy producer ─► data-api /v1/ingestion ─┐
 new Go producer ───────────────────────────┘
 ```
 
-**The data-api uses this package too.** Its ingestion use case (T8 there) becomes
-a call to `ingestion.Client`. So the envelope and the naming rule exist in one
-place, and a producer that moves from the data-api route to the direct client
-lands in the same table with the same columns.
+**The data-api uses this package too**, as its transport. Its ingestion use case
+(T8 there) converts the legacy body -- `<domain>_<service>`, the `id/providers`
+rule, `event_metadata`, the operation's synonyms -- into an `ingestion.Event`,
+and calls `Client.Send`. The conversion lives there and nowhere else.
 
 ## What the gateway expects (read from its code, gateway 0.15.0)
 
@@ -43,31 +45,23 @@ lands in the same table with the same columns.
   must be set and be an absolute `http(s)` URL; `ZARV_INGESTION_KEY` must be set.
   A `Config` field overrides each. A missing or malformed value is an error from
   `New` naming the variable, never a failure on the first send.
-- **One implementation of the naming rule, exported.** `TableName(domain,
-  service, metadata)` is `<domain>_<service>`, normalised (lowercase, anything
-  outside `[a-z0-9_]` to `_`, repeats collapsed, trimmed), with the one exception
-  the operator set: `id` + `providers` reads `metadata.provider` and
-  `metadata.path` → `id_providers_<provider>_<path>`.
-- **The record carries its metadata**, under `data.event_metadata` -- not
-  `metadata`, which is a field of several producers' own records and stays
-  theirs.
-- **The operation is translated, not validated.** Uppercased; CREATE → INSERT,
-  REPLACE and UPSERT → UPDATE; anything else goes through for the gateway to
-  refuse visibly.
+- **No legacy in zarv-go.** The package takes the gateway's body as it is: no
+  domain or service, no naming rule, no translation of the operation. The
+  data-api owns the conversion for the producers still on its route.
 - **Synchronous `Send`, with bounded retries.** A 503, a 5xx, a timeout or a
   connection error is retried with backoff, honouring `Retry-After`, up to a
   limit and within the caller's context. A 400/401/413, or a refusal inside a
   202, is returned at once as a typed error with the gateway's reason. Retrying is
   safe because the gateway's id is the record's content.
-- **No validation the gateway already does.** The client does not re-check size
-  or field names: the gateway's answer is the truth, and the client's job is to
-  surface it. The only checks are the ones that stop a request being built at all
-  (no URL, no key, no table name, no data).
+- **No validation the gateway already does.** The client does not re-check size,
+  table names or operations: the gateway's answer is the truth, and the client's
+  job is to surface it. The only checks are the ones that stop a request being
+  built at all (no URL, no key, no table name, no data).
 
 ## Dependency graph
 
 ```
-T1 config + New ──► T2 envelope + TableName ──► T3 Send, errors, retries ──► T4 observability + example
+T1 config + New ──► T2 the Event, as the gateway reads it ──► T3 Send, errors, retries ──► T4 observability + example
                                                                                    │
                                                                                    ▼
                                                                          T5 docs, lint, release v0.1.0
@@ -91,7 +85,7 @@ Tasks are in [`todo.md`](todo.md).
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The naming rule drifts between the data-api and a direct producer | **High** — the same event lands in two tables | One exported `TableName`, used by both; its test pins every historical `domain_service` and the 12 `id/providers` pairs |
+| A direct producer names a table differently from the data-api's rule for the same data | Medium — the same fact in two tables | The data-api's rule is written down for teams moving off its route (T22 there); a new producer picks its `table_name` in review |
 | A retry lands a second row | Medium | Only if the record changes between attempts; the gateway's id is content-addressed. The client never mutates the record it retries |
 | A producer treats a 202 as success when it carried a refusal | **High** — silent loss | `Send` parses the 202 and returns an error for any `rejected` entry |
 | The gateway is reachable only inside the cluster | Medium | Documented; a producer outside it needs network access agreed first |
