@@ -97,7 +97,7 @@ func TestSendPostsTheEventWithTheKey(t *testing.T) {
 	if err := json.Unmarshal(g.bodies[0], &body); err != nil {
 		t.Fatalf("body is not JSON: %v", err)
 	}
-	if body["table_name"] != "billing_plan" || body["operation"] != "UPDATE" {
+	if body["table_name"] != plan.TableName || body["operation"] != "UPDATE" {
 		t.Errorf("body = %v", body)
 	}
 }
@@ -124,7 +124,7 @@ func TestA202CarryingARefusalIsAnError(t *testing.T) {
 	if !errors.As(err, &refused) || !errors.Is(err, ErrRefused) {
 		t.Fatalf("err = %v, want a RefusedError", err)
 	}
-	if refused.Status != http.StatusAccepted || !strings.Contains(refused.Reason, `"CREATE"`) || refused.Table != "billing_plan" {
+	if refused.Status != http.StatusAccepted || !strings.Contains(refused.Reason, `"CREATE"`) || refused.Table != plan.TableName {
 		t.Errorf("RefusedError = %+v", refused)
 	}
 	if g.calls() != 1 {

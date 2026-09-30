@@ -86,8 +86,8 @@ reason — never the payload or the key), and a runnable `Example` in
 `example_test.go` that is also the README's snippet.
 
 **Acceptance criteria:**
-- [ ] Logs go to `Config.Logger`; a successful send logs nothing at info level
-- [ ] `go test` runs the example
+- [x] Logs go to `Config.Logger`; a successful send logs nothing at info level
+- [x] `go test` runs the example
 
 **Dependencies:** Task 3
 **Files:** `pkg/ingestion/send.go`, `pkg/ingestion/example_test.go`
