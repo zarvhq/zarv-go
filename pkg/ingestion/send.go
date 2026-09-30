@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,7 +36,18 @@ type reply202 struct {
 // row by its content. A 4xx, or a 202 that rejects the event, is a
 // *RefusedError; spent attempts are an *UnavailableError; a canceled ctx
 // returns ctx's error.
+//
+// A failed send is logged once to Config.Logger, with the table, the status and
+// the reason, never the record or the key. A success logs nothing.
 func (c *Client) Send(ctx context.Context, ev Event) error {
+	err := c.send(ctx, ev)
+	if err != nil {
+		c.logFailure(ctx, ev.TableName, err)
+	}
+	return err
+}
+
+func (c *Client) send(ctx context.Context, ev Event) error {
 	env, err := ev.envelope()
 	if err != nil {
 		return err
@@ -57,6 +70,7 @@ func (c *Client) Send(ctx context.Context, ev Event) error {
 		if wait == 0 {
 			wait = backoff(attempt)
 		}
+		c.log.DebugContext(ctx, "ingestion: retrying", "table", ev.TableName, "attempt", attempt, "status", last.Status, "wait", wait)
 		if err := c.sleep(ctx, wait); err != nil {
 			return err
 		}
@@ -94,6 +108,30 @@ func (c *Client) attempt(ctx context.Context, table string, body []byte, last *U
 	default:
 		return false, 0, &RefusedError{Table: table, Status: resp.StatusCode, Reason: strings.TrimSpace(string(reply))}
 	}
+}
+
+// logFailure writes the one line a failed send gets. A canceled context is the
+// caller's decision, so it is a warning.
+func (c *Client) logFailure(ctx context.Context, table string, err error) {
+	level := slog.LevelError
+	attrs := []any{"table", table}
+	var refused *RefusedError
+	var unavailable *UnavailableError
+	switch {
+	case errors.As(err, &refused):
+		attrs = append(attrs, "status", refused.Status, "reason", refused.Reason)
+	case errors.As(err, &unavailable):
+		attrs = append(attrs, "status", unavailable.Status, "attempts", unavailable.Attempts)
+		if unavailable.Err != nil {
+			attrs = append(attrs, "reason", unavailable.Err.Error())
+		}
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		level = slog.LevelWarn
+		attrs = append(attrs, "reason", err.Error())
+	default:
+		attrs = append(attrs, "reason", err.Error())
+	}
+	c.log.Log(ctx, level, "ingestion: send failed", attrs...)
 }
 
 // accepted202 turns a rejection inside an accepted request into an error: the
