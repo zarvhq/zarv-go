@@ -65,15 +65,15 @@ typed error carrying the gateway's reason; a 202 is parsed, and a `rejected`
 entry is an error too.
 
 **Acceptance criteria:**
-- [ ] Against an `httptest` gateway: 202 with nothing rejected → nil; 202 with a
+- [x] Against an `httptest` gateway: 202 with nothing rejected → nil; 202 with a
       rejection → an error naming the reason; 400, 401 and 413 → not retried
-- [ ] 503 with `Retry-After` → retried after the delay, then succeeds; context
+- [x] 503 with `Retry-After` → retried after the delay, then succeeds; context
       cancelled → stops and returns the context's error
-- [ ] The same bytes on every attempt (the record is never rebuilt between
+- [x] The same bytes on every attempt (the record is never rebuilt between
       retries), and the key never appears in an error or a log line
 
 **Verification:**
-- [ ] `go test -race ./pkg/ingestion/...`
+- [x] `go test -race ./pkg/ingestion/...`
 
 **Dependencies:** Task 2
 **Files:** `pkg/ingestion/send.go`, `pkg/ingestion/errors.go`, their tests
