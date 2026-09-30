@@ -94,7 +94,7 @@ reason — never the payload or the key), and a runnable `Example` in
 **Scope:** S
 
 ### Checkpoint: the package
-- [ ] `make ci` green
+- [x] `make ci` green
 - [ ] The operator has read the API and the README draft
 
 ---
