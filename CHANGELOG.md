@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `pkg/ingestion`: client for the ingestion gateway. `New` validates
+  `ZARV_INGESTION_URL` and `ZARV_INGESTION_KEY`; `Send` posts the gateway's
+  body with the Bearer key, retries 503/5xx/429 and transport errors honoring
+  `Retry-After`, and returns the gateway's refusals, a 202's included, as
+  `RefusedError`
 - Initial repository structure
 - Middleware package with authentication and authorization
 - Comprehensive documentation
