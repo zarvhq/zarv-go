@@ -33,21 +33,27 @@ MaxAttempts}` and `New(cfg) (*Client, error)`. URL and key default to
 
 ### Task 2: the envelope and `TableName`
 
+**Done:** 2026-09-30. Two decisions by the operator, from what production sends:
+the event's metadata travels under `data.event_metadata`, because `metadata` is
+already a field of the producers' own records (asset/asset 1.19M events,
+users/audit 624k, id/verification 357k...); and CREATE becomes INSERT, REPLACE
+and UPSERT become UPDATE (6,710 historical events the gateway would refuse).
+The history test: 108 tables, no collision, the longest 58 characters.
+
 **Description:** `Event{Domain, Service, Operation, Description, Data, Metadata}`
 and the envelope it becomes: `{table_name, operation, description, data}`, with
-`data` = the event's fields plus `metadata`. `TableName(domain, service,
+`data` = the event's fields plus `event_metadata`. `TableName(domain, service,
 metadata)` is exported and is the one implementation of the naming rule.
 
 **Acceptance criteria:**
-- [ ] `<domain>_<service>` normalised: lowercase, anything outside `[a-z0-9_]`
+- [x] `<domain>_<service>` normalised: lowercase, anything outside `[a-z0-9_]`
       to `_`, repeats collapsed, trimmed (`id` + `Verification failed` →
       `id_verification_failed`)
-- [ ] `id` + `providers` → `id_providers_<metadata.provider>_<metadata.path>`,
+- [x] `id` + `providers` → `id_providers_<metadata.provider>_<metadata.path>`,
       normalised; a providers event without `provider` or `path` is an error naming
       the field
-- [ ] A table-driven test over the 94 historical `domain_service` and the 12
-      `provider|path` pairs: no two onto one name, each within the gateway's
-      `naming.pattern`
+- [x] A test over the 94 historical `domain_service` and the 16 `provider|path`
+      pairs (all history): no two onto one name, each within `TablePattern`
 
 **Verification:**
 - [ ] `go test ./pkg/ingestion/...`

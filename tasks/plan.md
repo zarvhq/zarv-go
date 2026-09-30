@@ -48,8 +48,12 @@ lands in the same table with the same columns.
   outside `[a-z0-9_]` to `_`, repeats collapsed, trimmed), with the one exception
   the operator set: `id` + `providers` reads `metadata.provider` and
   `metadata.path` → `id_providers_<provider>_<path>`.
-- **The record carries its metadata.** `data` is the event's fields plus the
-  event's metadata under `metadata`, as the data-api bridge sends it.
+- **The record carries its metadata**, under `data.event_metadata` -- not
+  `metadata`, which is a field of several producers' own records and stays
+  theirs.
+- **The operation is translated, not validated.** Uppercased; CREATE → INSERT,
+  REPLACE and UPSERT → UPDATE; anything else goes through for the gateway to
+  refuse visibly.
 - **Synchronous `Send`, with bounded retries.** A 503, a 5xx, a timeout or a
   connection error is retried with backoff, honouring `Retry-After`, up to a
   limit and within the caller's context. A 400/401/413, or a refusal inside a
