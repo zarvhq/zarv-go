@@ -1,6 +1,7 @@
 package ingestion
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -53,6 +54,7 @@ type Client struct {
 	http        *http.Client
 	log         *slog.Logger
 	maxAttempts int
+	sleep       func(context.Context, time.Duration) error
 }
 
 // New builds a Client from cfg and the environment. It fails at once, naming
@@ -91,7 +93,7 @@ func New(cfg Config) (*Client, error) {
 		log = slog.Default()
 	}
 
-	return &Client{endpoint: endpoint, key: key, http: hc, log: log, maxAttempts: attempts}, nil
+	return &Client{endpoint: endpoint, key: key, http: hc, log: log, maxAttempts: attempts, sleep: sleepCtx}, nil
 }
 
 // endpointOf validates the base URL and resolves the route. The error never
