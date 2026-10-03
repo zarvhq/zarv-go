@@ -67,7 +67,11 @@ func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create impersonated token source for %q: %w", cfg.ImpersonateServiceAccount, err)
 		}
-		opts = append(opts, option.WithTokenSource(ts))
+		// Pin the quota/billing project to ProjectID. Without this, a client on
+		// GCE/GKE bills the API call to the node's project (not the impersonated
+		// account's), which may differ and have the API disabled. The impersonated
+		// account needs roles/serviceusage.serviceUsageConsumer on ProjectID.
+		opts = append(opts, option.WithTokenSource(ts), option.WithQuotaProject(cfg.ProjectID))
 	}
 
 	pubsubClient, err := pubsub.NewClient(ctx, cfg.ProjectID, opts...)
