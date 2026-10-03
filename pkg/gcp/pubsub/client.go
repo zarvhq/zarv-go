@@ -6,6 +6,7 @@ import (
 
 	//nolint:staticcheck // v1 client kept for compatibility; upgrade to v2 pending.
 	"cloud.google.com/go/pubsub"
+	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 )
 
@@ -33,6 +34,14 @@ type client struct {
 type Cfg struct {
 	ProjectID       string
 	CredentialsJSON []byte // Optional: if not provided, uses Application Default Credentials (Workload Identity)
+	// ImpersonateServiceAccount, when set (a service-account email), makes the
+	// client act as that account by minting short-lived tokens for it from the
+	// ambient credentials (Workload Identity). The ambient identity needs
+	// roles/iam.serviceAccountTokenCreator on the target. This is the keyless way
+	// to run under a dedicated identity (e.g. one in the project that owns the
+	// topic) when the pod's own SA belongs elsewhere — the API's consumer project
+	// becomes the target account's project.
+	ImpersonateServiceAccount string
 }
 
 // NewClient creates a new Google Cloud Pub/Sub client with the given context and configuration.
@@ -49,6 +58,16 @@ func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 	if len(cfg.CredentialsJSON) > 0 {
 		//nolint:staticcheck // WithCredentialsJSON deprecated; kept to support legacy secret format.
 		opts = append(opts, option.WithCredentialsJSON(cfg.CredentialsJSON))
+	}
+	if cfg.ImpersonateServiceAccount != "" {
+		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
+			TargetPrincipal: cfg.ImpersonateServiceAccount,
+			Scopes:          []string{"https://www.googleapis.com/auth/pubsub"},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create impersonated token source for %q: %w", cfg.ImpersonateServiceAccount, err)
+		}
+		opts = append(opts, option.WithTokenSource(ts))
 	}
 
 	pubsubClient, err := pubsub.NewClient(ctx, cfg.ProjectID, opts...)
