@@ -61,7 +61,7 @@ const (
 )
 
 // NewClient creates a new Google Cloud Storage client with optional custom endpoint/credentials.
-func NewClient(ctx context.Context, cfg *Cfg) (*client, error) {
+func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 	var opts []option.ClientOption
 
 	// Use credentials JSON if provided, otherwise use Application Default Credentials (Workload Identity)

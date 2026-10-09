@@ -115,7 +115,7 @@ func (s *subscriber) Receive(concurrency int) error {
 	return nil
 }
 
-func (s *subscriber) handleMessage(ctx context.Context, msg *pubsub.Message) {
+func (s *subscriber) handleMessage(_ context.Context, msg *pubsub.Message) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("panic recovered in message handler",
