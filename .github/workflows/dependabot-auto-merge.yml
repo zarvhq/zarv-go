@@ -31,6 +31,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           MERGE_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
           PR: ${{ github.event.pull_request.html_url }}
+          REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           SELF: Dependabot auto-merge
         run: |
@@ -38,19 +39,39 @@ jobs:
             echo "::warning::DEPENDABOT_AUTOMERGE_TOKEN is not set; leaving this security update for a human."
             exit 0
           fi
+          # REST check runs + commit statuses of the head commit, normalized to {name, state}.
+          # Not gh pr checks: on private repos it returned nothing to the Dependabot token, so the loop
+          # waited until the timeout instead of merging or failing.
+          # Only the newest run per name counts, so a re-run replaces an earlier failure.
+          poll() {
+            local runs statuses
+            runs=$(gh api --paginate "repos/$REPO/commits/$HEAD_SHA/check-runs?per_page=100" --jq '.check_runs[]') || return 1
+            statuses=$(gh api "repos/$REPO/commits/$HEAD_SHA/status" --jq '.statuses[]') || return 1
+            jq -s --arg self "$SELF" '
+              group_by(.name) | map(max_by(.id)) | map(select(.name != $self)) | map({name, state:
+                (if .status != "completed" then "pending"
+                 elif (.conclusion | IN("success")) then "pass"
+                 elif (.conclusion | IN("skipped", "neutral")) then "skip"
+                 else "fail" end)})' <<<"$runs" > runs.json
+            jq -s 'map({name: .context, state:
+                (if .state == "success" then "pass" elif .state == "pending" then "pending" else "fail" end)})' <<<"$statuses" > statuses.json
+            jq -s 'add' runs.json statuses.json
+          }
           settled=0
           for _ in $(seq 1 100); do
             sleep 30
-            # gh exits non-zero while checks are pending or failing; the JSON is still printed.
-            checks=$(gh pr checks "$PR" --json name,bucket --jq "[.[] | select(.name != \"$SELF\")]" 2>/dev/null) || true
-            [ -n "$checks" ] || continue
-            failed=$(jq -r '.[] | select(.bucket == "fail" or .bucket == "cancel") | .name' <<<"$checks")
+            if ! checks=$(poll); then
+              echo "::warning::could not read the checks of $HEAD_SHA; retrying"
+              continue
+            fi
+            echo "checks: $(jq -c 'group_by(.state) | map({(.[0].state): length}) | add // {}' <<<"$checks")"
+            failed=$(jq -r '.[] | select(.state == "fail") | .name' <<<"$checks")
             if [ -n "$failed" ]; then
               echo "::error::not merging, failed checks: $(tr '\n' ',' <<<"$failed")"
               exit 1
             fi
-            pending=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$checks")
-            passed=$(jq '[.[] | select(.bucket == "pass")] | length' <<<"$checks")
+            pending=$(jq '[.[] | select(.state == "pending")] | length' <<<"$checks")
+            passed=$(jq '[.[] | select(.state == "pass")] | length' <<<"$checks")
             if [ "$passed" -eq 0 ]; then
               continue
             fi
