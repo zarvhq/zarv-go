@@ -1,6 +1,6 @@
 module github.com/zarvhq/zarv-go
 
-go 1.24.0
+go 1.26.0
 
 require (
 	cloud.google.com/go/documentai v1.40.0
@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/pubsub v1.50.1
 	cloud.google.com/go/storage v1.59.2
 	github.com/rabbitmq/amqp091-go v1.10.0
-	golang.org/x/oauth2 v0.34.0
+	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.265.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20
 	google.golang.org/grpc v1.78.0
