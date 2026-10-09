@@ -31,7 +31,7 @@ type client struct {
 func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 	var opts []option.ClientOption
 	if cfg.CredentialsJSON != nil {
-		creds, err := google.CredentialsFromJSON(ctx, cfg.CredentialsJSON, "https://www.googleapis.com/auth/cloud-platform")
+		creds, err := google.CredentialsFromJSONWithType(ctx, cfg.CredentialsJSON, google.ServiceAccount, "https://www.googleapis.com/auth/cloud-platform")
 		if err != nil {
 			return nil, err
 		}
