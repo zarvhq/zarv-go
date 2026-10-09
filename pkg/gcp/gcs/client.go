@@ -66,7 +66,7 @@ func NewClient(ctx context.Context, cfg *Cfg) (*client, error) {
 
 	// Use credentials JSON if provided, otherwise use Application Default Credentials (Workload Identity)
 	if len(cfg.CredentialsJSON) > 0 {
-		creds, err := google.CredentialsFromJSON(ctx, cfg.CredentialsJSON, storage.ScopeFullControl)
+		creds, err := google.CredentialsFromJSONWithType(ctx, cfg.CredentialsJSON, google.ServiceAccount, storage.ScopeFullControl)
 		if err != nil {
 			return nil, fmt.Errorf("error creating credentials from JSON: %w", err)
 		}

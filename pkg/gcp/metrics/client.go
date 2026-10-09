@@ -59,7 +59,7 @@ func NewClient(ctx context.Context, cfg *Cfg) (Client, error) {
 
 	opts := []option.ClientOption{}
 	if len(cfg.CredentialsJSON) > 0 {
-		creds, err := google.CredentialsFromJSON(ctx, cfg.CredentialsJSON, monitoring.DefaultAuthScopes()...)
+		creds, err := google.CredentialsFromJSONWithType(ctx, cfg.CredentialsJSON, google.ServiceAccount, monitoring.DefaultAuthScopes()...)
 		if err != nil {
 			return nil, fmt.Errorf("error creating credentials from JSON: %w", err)
 		}
