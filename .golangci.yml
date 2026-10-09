@@ -23,12 +23,6 @@ linters:
     goconst:
       min-len: 3
       min-occurrences: 3
-  exclusions:
-    rules:
-      # Table-driven tests repeat fixture literals on purpose.
-      - path: _test\.go
-        linters:
-          - goconst
     misspell:
       locale: US
     revive:
@@ -37,6 +31,12 @@ linters:
           arguments:
             - "checkPrivateReceivers"
             - "sayRepetitiveInsteadOfStutters"
+  exclusions:
+    rules:
+      # Table-driven tests repeat fixture literals on purpose.
+      - path: _test\.go
+        linters:
+          - goconst
 
 formatters:
   enable:
