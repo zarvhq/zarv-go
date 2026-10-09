@@ -85,7 +85,7 @@ func (e *Emitter) Emit(ctx context.Context, ev Event) error {
 	ev.Metadata = redact(ev.Metadata)
 
 	attrs := map[string]string{"action": ev.Action, "service": e.service}
-	e.pub.PublishAsync(ctx, ev, attrs, func(id string, err error) {
+	e.pub.PublishAsync(ctx, ev, attrs, func(_ string, err error) {
 		if err != nil {
 			e.log.Error("audit: publish failed",
 				slog.String("action", ev.Action),
