@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/monitoring v1.30.0
 	cloud.google.com/go/pubsub v1.51.0
 	cloud.google.com/go/storage v1.69.0
-	github.com/rabbitmq/amqp091-go v1.14.0
+	github.com/rabbitmq/amqp091-go v1.15.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.300.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260715232425-e75dac1f907d
