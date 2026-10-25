@@ -14,11 +14,16 @@ import (
 
 // The environment a Client reads when its Config leaves a field empty.
 const (
-	// EnvURL is the gateway's base URL, e.g. http://data-pipeline-ingestion:8080.
+	// EnvURL is the gateway's base URL. Unset, DefaultURL is used.
 	EnvURL = "ZARV_INGESTION_URL"
-	// EnvKey is the Bearer key the gateway's stream accepts.
+	// EnvKey is the Bearer key, for a gateway that asks for one. Unset, no
+	// Authorization header is sent.
 	EnvKey = "ZARV_INGESTION_KEY"
 )
+
+// DefaultURL is the gateway inside the cluster, the same in every environment.
+// It takes no key: only the cluster reaches it.
+const DefaultURL = "http://data-ingest.data-stack.svc.cluster.local:8080"
 
 // Defaults applied by New when the Config leaves a field at its zero value.
 const (
@@ -31,12 +36,14 @@ const (
 // Client. The message names the variable or field, never its value.
 var ErrInvalidConfig = errors.New("ingestion: invalid configuration")
 
-// Config configures a Client. URL and Key fall back to EnvURL and EnvKey.
+// Config configures a Client. URL falls back to EnvURL, then DefaultURL; Key
+// falls back to EnvKey, then to none.
 type Config struct {
 	// URL is the gateway's base URL. Without a path, /v1/ingestion is used;
-	// with one, it is used as it is. Defaults to $ZARV_INGESTION_URL.
+	// with one, it is used as it is. Defaults to $ZARV_INGESTION_URL, then
+	// DefaultURL.
 	URL string
-	// Key is the Bearer key. Defaults to $ZARV_INGESTION_KEY.
+	// Key is the Bearer key. Defaults to $ZARV_INGESTION_KEY; empty sends none.
 	Key string
 	// HTTPClient sends the requests. Defaults to one with DefaultTimeout.
 	HTTPClient *http.Client
@@ -58,23 +65,19 @@ type Client struct {
 }
 
 // New builds a Client from cfg and the environment. It fails at once, naming
-// the variable, when the gateway's URL or key is missing or the URL is not an
-// absolute http(s) URL, so a misconfigured service fails at start rather than
-// on its first event.
+// the variable, when the URL given is not an absolute http(s) URL, so a
+// misconfigured service fails at start rather than on its first event.
 func New(cfg Config) (*Client, error) {
 	raw := strings.TrimSpace(firstNonEmpty(cfg.URL, os.Getenv(EnvURL)))
 	if raw == "" {
-		return nil, fmt.Errorf("%w: %s is not set", ErrInvalidConfig, EnvURL)
+		raw = DefaultURL
 	}
 	endpoint, err := endpointOf(raw)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s %v", ErrInvalidConfig, EnvURL, err)
 	}
 
-	key := firstNonEmpty(cfg.Key, os.Getenv(EnvKey))
-	if strings.TrimSpace(key) == "" {
-		return nil, fmt.Errorf("%w: %s is not set", ErrInvalidConfig, EnvKey)
-	}
+	key := strings.TrimSpace(firstNonEmpty(cfg.Key, os.Getenv(EnvKey)))
 
 	if cfg.MaxAttempts < 0 {
 		return nil, fmt.Errorf("%w: MaxAttempts is %d, it cannot be negative", ErrInvalidConfig, cfg.MaxAttempts)

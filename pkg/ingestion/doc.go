@@ -1,13 +1,14 @@
 // Package ingestion sends events to the Zarv ingestion gateway, which lands
 // each one in its bronze table.
 //
-// A Client is configured from the environment: ZARV_INGESTION_URL is the
-// gateway's base URL and ZARV_INGESTION_KEY its Bearer key. New fails at once
-// when either is missing or the URL is not an absolute http(s) URL.
+// With no configuration a Client sends to the gateway inside the cluster,
+// DefaultURL, with no key. ZARV_INGESTION_URL points it at another gateway and
+// ZARV_INGESTION_KEY adds a Bearer key for one that asks for it. New fails at
+// once when the URL given is not an absolute http(s) URL.
 //
 //	client, err := ingestion.New(ingestion.Config{})
 //	if err != nil {
-//		log.Fatal(err) // names the variable that is missing
+//		log.Fatal(err) // names the variable with the bad value
 //	}
 //
 // Send posts one Event, the gateway's body as it is, and returns once the

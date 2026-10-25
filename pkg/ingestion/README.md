@@ -8,9 +8,9 @@ conteúdo do evento.
 ```go
 import "github.com/zarvhq/zarv-go/pkg/ingestion"
 
-client, err := ingestion.New(ingestion.Config{}) // lê as variáveis de ambiente
+client, err := ingestion.New(ingestion.Config{}) // o gateway interno, ou o das variáveis
 if err != nil {
-    log.Fatal(err) // nomeia a variável que falta
+    log.Fatal(err) // nomeia a variável com valor inválido
 }
 
 err = client.Send(ctx, ingestion.Event{
@@ -30,12 +30,17 @@ case errors.Is(err, ingestion.ErrUnavailable):
 
 | Variável | Campo do `Config` | |
 |---|---|---|
-| `ZARV_INGESTION_URL` | `URL` | URL base do gateway, `http` ou `https`. Sem caminho, usa `/v1/ingestion` |
-| `ZARV_INGESTION_KEY` | `Key` | Chave Bearer aceita pelo stream do gateway |
+| `ZARV_INGESTION_URL` | `URL` | URL base do gateway, `http` ou `https`. Sem caminho, usa `/v1/ingestion`. Vazia, usa `DefaultURL` |
+| `ZARV_INGESTION_KEY` | `Key` | Chave Bearer, só para um gateway que pede chave. Vazia, nenhum `Authorization` é enviado |
+
+Sem configuração nenhuma, o cliente fala com o gateway interno do cluster,
+`DefaultURL` = `http://data-ingest.data-stack.svc.cluster.local:8080`, o mesmo
+em dev e prod. Esse gateway não pede chave: só o cluster chega nele
+(`BREVIS_COMMUNICATION=internal`).
 
 O campo do `Config`, quando preenchido, vence a variável. `New` falha na
-partida se faltar a URL ou a chave, ou se a URL não for absoluta; a mensagem
-nomeia a variável e nunca mostra o valor.
+partida se a URL dada não for absoluta; a mensagem nomeia a variável e nunca
+mostra o valor.
 
 Opcionais: `HTTPClient` (padrão com timeout de 30s), `Logger` (padrão
 `slog.Default()`) e `MaxAttempts` (padrão 4, contando a primeira).
