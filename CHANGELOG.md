@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `pkg/ingestion`: with no `ZARV_INGESTION_URL`, `New` uses `DefaultURL`, the
+  gateway inside the cluster (`data-ingest.data-stack`); the key is optional
+  and, empty, no `Authorization` is sent. `New` no longer fails on a missing
+  URL or key
+
 ### Added
 - `pkg/ingestion`: client for the ingestion gateway. `New` validates
   `ZARV_INGESTION_URL` and `ZARV_INGESTION_KEY`; `Send` posts the gateway's

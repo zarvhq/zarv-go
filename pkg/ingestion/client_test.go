@@ -27,16 +27,20 @@ func TestNewReadsTheGatewayFromTheEnvironment(t *testing.T) {
 	}
 }
 
-func TestNewFailsWithoutTheURLNamingTheVariable(t *testing.T) {
-	t.Setenv(EnvURL, "")
-	t.Setenv(EnvKey, secret)
+func TestNewDefaultsToTheInternalGateway(t *testing.T) {
+	for _, raw := range []string{"", "   "} {
+		t.Run(raw, func(t *testing.T) {
+			t.Setenv(EnvURL, raw)
+			t.Setenv(EnvKey, "")
 
-	_, err := New(Config{})
-	if !errors.Is(err, ErrInvalidConfig) {
-		t.Fatalf("err = %v, want ErrInvalidConfig", err)
-	}
-	if !strings.Contains(err.Error(), EnvURL) {
-		t.Errorf("the error does not name %s: %v", EnvURL, err)
+			c, err := New(Config{})
+			if err != nil {
+				t.Fatalf("New: %v", err)
+			}
+			if got, want := c.endpoint, DefaultURL+"/v1/ingestion"; got != want {
+				t.Errorf("endpoint = %q, want %q", got, want)
+			}
+		})
 	}
 }
 
@@ -48,7 +52,6 @@ func TestNewRefusesAURLThatIsNotAnAbsoluteHTTPURL(t *testing.T) {
 		"ftp://ingestion.data.svc", // not http
 		"http://",                  // no host
 		"http://bad host:8080",     // does not parse
-		"   ",                      // blank
 	} {
 		t.Run(raw, func(t *testing.T) {
 			t.Setenv(EnvURL, raw)
@@ -63,16 +66,16 @@ func TestNewRefusesAURLThatIsNotAnAbsoluteHTTPURL(t *testing.T) {
 	}
 }
 
-func TestNewFailsWithoutTheKeyNamingTheVariable(t *testing.T) {
+func TestNewWorksWithoutAKey(t *testing.T) {
 	t.Setenv(EnvURL, "http://ingestion.data.svc:8080")
 	t.Setenv(EnvKey, "")
 
-	_, err := New(Config{})
-	if !errors.Is(err, ErrInvalidConfig) {
-		t.Fatalf("err = %v, want ErrInvalidConfig", err)
+	c, err := New(Config{})
+	if err != nil {
+		t.Fatalf("New: %v", err)
 	}
-	if !strings.Contains(err.Error(), EnvKey) {
-		t.Errorf("the error does not name %s: %v", EnvKey, err)
+	if c.key != "" {
+		t.Errorf("key = %q, want none", c.key)
 	}
 }
 

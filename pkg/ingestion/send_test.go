@@ -102,6 +102,22 @@ func TestSendPostsTheEventWithTheKey(t *testing.T) {
 	}
 }
 
+func TestSendWithoutAKeySendsNoAuthorization(t *testing.T) {
+	t.Setenv(EnvKey, "")
+	g, srv := newGateway(t, reply{status: http.StatusAccepted, body: accepted})
+	c, err := New(Config{URL: srv.URL})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	if err := c.Send(context.Background(), plan); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	if _, ok := g.headers[0]["Authorization"]; ok {
+		t.Errorf("Authorization sent without a key: %q", g.headers[0].Get("Authorization"))
+	}
+}
+
 // The gateway archives an oversize event whole and says so. That is kept, not
 // lost, so it is a success.
 func TestAnArchivedEventIsASuccess(t *testing.T) {

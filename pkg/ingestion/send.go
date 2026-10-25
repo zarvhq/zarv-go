@@ -86,7 +86,9 @@ func (c *Client) attempt(ctx context.Context, table string, body []byte, last *U
 		return false, 0, fmt.Errorf("ingestion: building the request for %s: %w", table, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.key)
+	if c.key != "" {
+		req.Header.Set("Authorization", "Bearer "+c.key)
+	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
