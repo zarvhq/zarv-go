@@ -96,3 +96,16 @@ um envio bem-sucedido não gera log.
 
 O gateway é interno ao cluster. Um produtor fora dele precisa de acesso de rede
 combinado antes.
+
+## Moving off zarv-data-api's /v1/ingestion
+
+A producer that still builds the old envelope keeps its fields and sends it through a `LegacyEvent`; the table and the operation come out as the data-api made them:
+
+```go
+ev, err := ingestion.LegacyEvent{
+	Domain: "id", Service: "verification", Operation: "create",
+	Data: record, Metadata: meta,
+}.Event()
+if err != nil { /* ErrInvalidEvent: no table can be named */ }
+err = client.Send(ctx, ev)
+```
