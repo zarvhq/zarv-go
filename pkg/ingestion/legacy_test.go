@@ -45,10 +45,14 @@ func TestLegacyEventDoesNotModifyTheCallersData(t *testing.T) {
 }
 
 func TestLegacyOperationSynonyms(t *testing.T) {
-	for in, want := range map[string]string{"create": "INSERT", " Replace ": "UPDATE", "UPSERT": "UPDATE", "DELETE": "DELETE", "": "", "odd": "odd"} {
-		ev, err := LegacyEvent{Domain: "d", Service: "s", Operation: in, Data: map[string]any{}}.Event()
-		if err != nil || ev.Operation != want {
-			t.Errorf("%q -> %q, %v; want %q", in, ev.Operation, err, want)
+	cases := []struct{ in, want string }{
+		{"create", "INSERT"}, {" Replace ", "UPDATE"}, {"UPSERT", "UPDATE"},
+		{"DELETE", "DELETE"}, {"", ""}, {"odd", "odd"},
+	}
+	for _, c := range cases {
+		ev, err := LegacyEvent{Domain: "d", Service: "s", Operation: c.in, Data: map[string]any{}}.Event()
+		if err != nil || ev.Operation != c.want {
+			t.Errorf("%q -> %q, %v; want %q", c.in, ev.Operation, err, c.want)
 		}
 	}
 }
