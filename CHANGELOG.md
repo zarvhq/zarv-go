@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   URL or key
 
 ### Added
+- `pkg/ingestion`: `LegacyEvent` is the envelope producers sent to zarv-data-api's `/v1/ingestion` (domain, service, metadata beside the record); `Event()` turns it into the gateway's event exactly as the data-api did (table `<domain>_<service>` normalised, `id/providers` split by `metadata.provider` and `metadata.path`, CREATE/REPLACE/UPSERT translated, metadata kept as `event_metadata`), so a producer that leaves the data-api lands its rows in the same tables
 - `pkg/ingestion`: client for the ingestion gateway. `New` validates
   `ZARV_INGESTION_URL` and `ZARV_INGESTION_KEY`; `Send` posts the gateway's
   body with the Bearer key, retries 503/5xx/429 and transport errors honoring
