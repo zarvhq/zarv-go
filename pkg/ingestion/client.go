@@ -14,16 +14,12 @@ import (
 
 // The environment a Client reads when its Config leaves a field empty.
 const (
-	// EnvURL is the gateway's base URL. Unset, DefaultURL is used.
+	// EnvURL is the gateway's base URL. Required: there is no default.
 	EnvURL = "ZARV_INGESTION_URL"
 	// EnvKey is the Bearer key, for a gateway that asks for one. Unset, no
 	// Authorization header is sent.
 	EnvKey = "ZARV_INGESTION_KEY"
 )
-
-// DefaultURL is the gateway inside the cluster, the same in every environment.
-// It takes no key: only the cluster reaches it.
-const DefaultURL = "http://data-ingest.data-stack.svc.cluster.local:8080"
 
 // Defaults applied by New when the Config leaves a field at its zero value.
 const (
@@ -36,12 +32,11 @@ const (
 // Client. The message names the variable or field, never its value.
 var ErrInvalidConfig = errors.New("ingestion: invalid configuration")
 
-// Config configures a Client. URL falls back to EnvURL, then DefaultURL; Key
+// Config configures a Client. URL falls back to EnvURL; Key
 // falls back to EnvKey, then to none.
 type Config struct {
 	// URL is the gateway's base URL. Without a path, /v1/ingestion is used;
-	// with one, it is used as it is. Defaults to $ZARV_INGESTION_URL, then
-	// DefaultURL.
+	// with one, it is used as it is. Defaults to $ZARV_INGESTION_URL.
 	URL string
 	// Key is the Bearer key. Defaults to $ZARV_INGESTION_KEY; empty sends none.
 	Key string
@@ -65,12 +60,12 @@ type Client struct {
 }
 
 // New builds a Client from cfg and the environment. It fails at once, naming
-// the variable, when the URL given is not an absolute http(s) URL, so a
+// the variable, when the URL is missing or not an absolute http(s) URL, so a
 // misconfigured service fails at start rather than on its first event.
 func New(cfg Config) (*Client, error) {
 	raw := strings.TrimSpace(firstNonEmpty(cfg.URL, os.Getenv(EnvURL)))
 	if raw == "" {
-		raw = DefaultURL
+		return nil, fmt.Errorf("%w: %s is not set", ErrInvalidConfig, EnvURL)
 	}
 	endpoint, err := endpointOf(raw)
 	if err != nil {

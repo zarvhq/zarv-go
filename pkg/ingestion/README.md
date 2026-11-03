@@ -30,16 +30,14 @@ case errors.Is(err, ingestion.ErrUnavailable):
 
 | Variável | Campo do `Config` | |
 |---|---|---|
-| `ZARV_INGESTION_URL` | `URL` | URL base do gateway, `http` ou `https`. Sem caminho, usa `/v1/ingestion`. Vazia, usa `DefaultURL` |
+| `ZARV_INGESTION_URL` | `URL` | URL base do gateway, `http` ou `https`. Obrigatória; sem caminho, usa `/v1/ingestion` |
 | `ZARV_INGESTION_KEY` | `Key` | Chave Bearer, só para um gateway que pede chave. Vazia, nenhum `Authorization` é enviado |
 
-Sem configuração nenhuma, o cliente fala com o gateway interno do cluster,
-`DefaultURL` = `http://data-ingest.data-stack.svc.cluster.local:8080`, o mesmo
-em dev e prod. Esse gateway não pede chave: só o cluster chega nele
-(`BREVIS_COMMUNICATION=internal`).
+O pacote não carrega endereço nenhum: cada serviço declara `ZARV_INGESTION_URL` no
+seu manifesto. O gateway interno não pede chave (`BREVIS_COMMUNICATION=internal`).
 
 O campo do `Config`, quando preenchido, vence a variável. `New` falha na
-partida se a URL dada não for absoluta; a mensagem nomeia a variável e nunca
+partida se a URL faltar ou não for absoluta; a mensagem nomeia a variável e nunca
 mostra o valor.
 
 Opcionais: `HTTPClient` (padrão com timeout de 30s), `Logger` (padrão

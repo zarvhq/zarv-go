@@ -27,18 +27,18 @@ func TestNewReadsTheGatewayFromTheEnvironment(t *testing.T) {
 	}
 }
 
-func TestNewDefaultsToTheInternalGateway(t *testing.T) {
+func TestNewRefusesAMissingURL(t *testing.T) {
 	for _, raw := range []string{"", "   "} {
 		t.Run(raw, func(t *testing.T) {
 			t.Setenv(EnvURL, raw)
 			t.Setenv(EnvKey, "")
 
-			c, err := New(Config{})
-			if err != nil {
-				t.Fatalf("New: %v", err)
+			_, err := New(Config{})
+			if !errors.Is(err, ErrInvalidConfig) {
+				t.Fatalf("err = %v, want ErrInvalidConfig", err)
 			}
-			if got, want := c.endpoint, DefaultURL+"/v1/ingestion"; got != want {
-				t.Errorf("endpoint = %q, want %q", got, want)
+			if !strings.Contains(err.Error(), EnvURL) {
+				t.Errorf("the error does not name %s: %v", EnvURL, err)
 			}
 		})
 	}

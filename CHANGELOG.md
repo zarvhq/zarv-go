@@ -8,10 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- `pkg/ingestion`: with no `ZARV_INGESTION_URL`, `New` uses `DefaultURL`, the
-  gateway inside the cluster (`data-ingest.data-stack`); the key is optional
-  and, empty, no `Authorization` is sent. `New` no longer fails on a missing
-  URL or key
+- **Breaking** `pkg/ingestion`: `New` fails with `ErrInvalidConfig` when neither
+  `Config.URL` nor `ZARV_INGESTION_URL` is set. The package carries no gateway
+  address; every service declares it. The key stays optional and, empty, no
+  `Authorization` is sent
 
 ### Added
 - `pkg/ingestion`: `LegacyEvent` is the envelope producers sent to zarv-data-api's `/v1/ingestion` (domain, service, metadata beside the record); `Event()` turns it into the gateway's event exactly as the data-api did (table `<domain>_<service>` normalised, `id/providers` split by `metadata.provider` and `metadata.path`, CREATE/REPLACE/UPSERT translated, metadata kept as `event_metadata`), so a producer that leaves the data-api lands its rows in the same tables
