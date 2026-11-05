@@ -9,8 +9,8 @@ cloud.google.com/go/auth/oauth2adapt v0.3.0 h1:FY8oSZpCYoUNv6QxVODuMjQz4IlSOVeiQ
 cloud.google.com/go/auth/oauth2adapt v0.3.0/go.mod h1:7+2uCm7++XFO+/lN06c2HXpDXb/NMNn2/UwyBPbTnkk=
 cloud.google.com/go/compute/metadata v0.10.0 h1:pyKMUQSwchgkIBBJGdILqQbs/BNJXqwSA7Ej6LAvvtY=
 cloud.google.com/go/compute/metadata v0.10.0/go.mod h1:rGFHRrIif570kSibjFTMbt6/4/tzgJWFGI/HVol4GIk=
-cloud.google.com/go/documentai v1.50.0 h1:5HfX0jw7UFb0pyhIMSC58vWwY5Jznv6Xoh66rTrJaZs=
-cloud.google.com/go/documentai v1.50.0/go.mod h1:+Q2mQoK/ldHrcilGSAOQ3HxYVIRcnXXb6JVgJUHoR4M=
+cloud.google.com/go/documentai v1.51.0 h1:eG5YyPWLKxQHio5fkpNw6tS0i4/GCs7Uzp2GBebvPUY=
+cloud.google.com/go/documentai v1.51.0/go.mod h1:QnwQdv1OjCdTY2E6rrsLbMnaCbunM4J0dQCRokc8oNc=
 cloud.google.com/go/iam v1.12.0 h1:Aki3bX9aHUDKPHfnRJfDcTdVedvy6quGBQcTqx3DRXk=
 cloud.google.com/go/iam v1.12.0/go.mod h1:FEZ4lXpADAC2AIpQY7LANNjjwyQ2jK439CI2VaD+sLY=
 cloud.google.com/go/kms v1.32.0 h1:s+rEluaaZKhLVjrIWG7uNBsnWbiitElzNzFGyp6+nIg=
