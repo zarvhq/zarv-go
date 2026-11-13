@@ -49,26 +49,6 @@ Publicação e consumo de mensagens em tópicos e subscriptions.
 
 ---
 
-### 🐰 [RabbitMQ](docs/rabbitmq.md)
-
-Cliente para operações com RabbitMQ.
-
-```go
-import "github.com/zarvhq/zarv-go/pkg/rabbitmq"
-```
-
-**Funcionalidades:**
-- Producer com reconnection automática
-- Consumer com graceful shutdown
-- Handlers personalizáveis
-- Processamento concorrente configurável
-- Serialização automática JSON
-- Thread-safe
-
-**[📖 Ver documentação completa →](docs/rabbitmq.md)**
-
----
-
 ### 📥 [Ingestion](pkg/ingestion/README.md)
 
 Envio de eventos ao gateway de ingestão, que grava cada um na sua tabela `bronze`.
